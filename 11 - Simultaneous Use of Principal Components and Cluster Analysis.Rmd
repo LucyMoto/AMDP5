@@ -1,0 +1,102 @@
+---
+title: "11 - Simultaneous Use of Principal Components and Cluster Analysis"
+author: "Lucy Michaels"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### Examining the Economic Indicators Dataset 'macro' with PCA and Cluster Analysis
+
+#### Examining the Dataset
+```{r}
+library(clustrd)
+```
+First we load the dataset 'macro' and scale the data. From R documentation, we know that this dataset gives Economic Indicators of 20 OECD countries for 1999. There are six main economic indicators (percentage change from the previous year): gross domestic product (GDP), leading indicator (LI), unemployment rate (UR), interest rate (IR), trade balance (TB), net national savings (NNS)
+
+We then load the dataset and scale the data, reassigning the scaled data to the variable 'macro':
+```{r}
+data("macro")
+macro.scaled <- scale(macro) 
+```
+To begin, we use the 'head' function, rounding the results to 2d.p., to display the first few rows of the dataset 'macro' and run the 'pairs' function to create a scatterplot matrix of the data, in order to get a better feel for the data:
+```{r}
+round(head(macro.scaled),2) 
+pairs(macro.scaled)
+```
+
+In this case, it is quite difficult to spot any correlations by eye. We can use the 'cor' function to calculate the correlation matrix of the dataset 'macro' and round the results to one decimal place:
+```{r}
+round(cor(macro.scaled),1)
+```
+Indeed, the correlation matrix shows that there are no correlations exceeding + or - 0.4 between the variables. We can now proceed with the PCA and cluster analysis. 
+
+#### Performing PCA and Reduced K-means Cluster Analysis
+
+The function cluspca() from the 'clustrd' package is used to perform PCA and cluster analysis simultaneously. The function takes the arguments: dataset, number of clusters, number of principal components, clustering method, rotation method for the principal components. We will use RKM (reduced k-means) and varimax rotation. We will set the number of principal components to 2 and the number of clusters to 3:
+```{r}
+outRKM <- cluspca(macro.scaled, 3, 2, method = "RKM", rotation = "varimax")
+```
+The output of the function is stored in the variable 'outRKM'. We can use the 'names' function to see the components of the output:
+```{r}
+names(outRKM)
+```
+### Results of the PCA and Cluster Analysis
+Or use the summary function to summarise all 10 parts of the output:
+```{r}
+summary(outRKM)
+```
+The output of the function 'cluspca' is a list of 10 components.  In the summary given, we can see that our minimum within cluster sum of squares scores are 5.1, 4.2 and 2.0, while the maximum between/total is 80%.  
+
+'centroid' gives us the coordinates of the centre of each cluster, although these are not directly interpretable because the data is scaled. 
+```{r}
+round(outRKM$centroid, 2)
+```
+'attcoord' (loadings) and 'obscoord' give us the coordinates of the variables and of the observations respectively in the rotated space. These are difficult to interpret, however. 
+```{r}
+round(outRKM$attcoord,1)
+```
+We can see that the most important variables for the first principal component are 'Gross Dom. Prod.' and 'Net Nat. Savings'. For the second principal component, the most important variables are 'Interest Rate' and 'Trade Balance'.
+
+'cluster' show us which countries belong to which clusters. 
+'size' gives us the number of objects in each cluster. 
+```{r}
+outRKM$cluster
+outRKM$size
+```
+We can see that there are two larger clusters and a smaller one. 
+
+'criterion' gives us the optimal value of the objective function.
+```{r}
+outRKM$criterion
+```
+We can use the 'aggregate' function to calculate the mean of the original data for each cluster.
+```{r}
+aggregate(macro, by=list(cluster=outRKM$cluster), mean)
+```
+We can use the 'plot' function to plot the results of the PCA and cluster analysis.
+```{r}
+plot(outRKM, cludesc = TRUE)
+```
+
+In this plot, each coloured line represents a cluster. The black horizontal line represents the scaled mean.
+
+We can also use the 'plot' function to see the biplot of the PCA and cluster analysis. 
+```{r}
+plot(outRKM)
+```
+
+This allows us the see the relative importance of the variables in the rotated space and the centres of the clusters. 
+
+We can also use the 'plot' function to see the biplot of the PCA and cluster analysis, with the labels of the variables. 
+```{r}
+lbl <- c("Gross Dom. Prod.", "Lead. Indicator", "Unempl. Rate", "Interest Rate", "Trade Balance", "Net Nat. Savings")
+plot(outRKM, what = c(FALSE, TRUE), attlabs = lbl)
+```
+
+This allows us to see the relative importance of the variables in the rotated space. We can see that for the first principal component, the most important variables are 'Gross Dom. Prod.' and 'Net Nat. Savings'. For the second principal component, the most important variables are 'Interest Rate' and 'Trade Balance'. This confirms what we saw when looking at the 'attacoord' component of the output. 
+
+### Interpretation of the results:
+The PCA and cluster analysis has shown that the countries can be grouped into three clusters based on the economic indicators: The largest cluster consists of countries with low values for all the economic indicators; the second largest cluster consists of the countries with high Gross Domestic Product and low Net National Savings whilst the smallest cluster consists of countries with high Interest Rates and low Trade Balances. 
